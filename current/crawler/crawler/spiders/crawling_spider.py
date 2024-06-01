@@ -1,14 +1,21 @@
 import scrapy
 
+
 class CrawlingSpider(scrapy.Spider):
     name = "mycrawler"
     allowed_domains = ["scrapethissite.com"]
     start_urls = ["https://www.scrapethissite.com/pages/forms/?q=Boston+Bruins"]
 
     def parse(self, response):
-        # Update the XPath expressions to match the actual HTML structure of the page
-        team_name = response.xpath("//h3[@class='team-name']/text()").get()
-        team_stats = response.xpath("//div[@class='team-stats']/p/text()").getall()
+        # Find links to detail pages
+        links = response.xpath("//a[@class='team-link']/@href").getall()
+        for link in links:
+            yield response.follow(link, callback=self.parse_team_page)
+
+    def parse_team_page(self, response):
+        # Extract team name and stats from the detail page
+        team_name = response.xpath("//h3[contains(@class, 'team-name')]/text()").get()
+        team_stats = response.xpath("//div[contains(@class, 'team-stats')]/p/text()").getall()
 
         if not team_name:
             team_name = "No Team Name Found"
